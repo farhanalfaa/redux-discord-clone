@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./Sidebar.css";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import AddIcon from "@material-ui/icons/Add";
@@ -10,8 +10,34 @@ import { Avatar } from "@material-ui/core";
 import MicIcon from "@material-ui/icons/Mic";
 import HeadsetIcon from "@material-ui/icons/Headset";
 import SettingsIcon from "@material-ui/icons/Settings";
+import { selectUser } from "./features/userSlice";
+import { useSelector } from "react-redux";
+import db, { auth } from "./firebase";
 
 function Sidebar() {
+  const user = useSelector(selectUser);
+  const [channels, setChannels] = useState([]);
+
+  useEffect(() => {
+    db.collection("channels").onSnapshot((snapshot) =>
+      setChannels(
+        snapshot.docs.map((doc) => ({
+          id: doc.id,
+          channel: doc.data(),
+        }))
+      )
+    );
+  });
+
+  const handlerAddChannel = () => {
+    const channelName = prompt("Enter a new channel name");
+    if (channelName) {
+      db.collection("channels").add({
+        channelName: channelName,
+      });
+    }
+  };
+
   return (
     <div className="sidebar">
       <div className="sidebar__top">
@@ -24,13 +50,19 @@ function Sidebar() {
             <ExpandMoreIcon />
             <h4>Text Channel</h4>
           </div>
-          <AddIcon className="sidebar__addChannel" />
+          <AddIcon
+            onClick={handlerAddChannel}
+            className="sidebar__addChannel"
+          />
         </div>
         <div className="sidebar__channelsList">
-          <SidebarChannel />
-          <SidebarChannel />
-          <SidebarChannel />
-          <SidebarChannel />
+          {channels.map(({ id, channel }) => (
+            <SidebarChannel
+              key={id}
+              id={id}
+              channelName={channel.channelName}
+            />
+          ))}
         </div>
       </div>
 
@@ -50,10 +82,10 @@ function Sidebar() {
       </div>
 
       <div className="sidebar__profile">
-        <Avatar src="https://avatars0.githubusercontent.com/u/39804476?s=460&u=aa4fabc630b2a28e4e0b6cc0427cf561c805902f&v=4" />
+        <Avatar onClick={() => auth.signOut()} src={user.photo} />
         <div className="sidebar__profileInfo">
-          <h3>@farhanalfaa</h3>
-          <p>#thisIsMyID</p>
+          <h3>{user.displayName}</h3>
+          <p>#{user.uid.substring(0, 6)}</p>
         </div>
         <div className="sidebar__profileIcons">
           <MicIcon />
